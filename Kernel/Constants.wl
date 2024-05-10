@@ -9,6 +9,7 @@ tOGRLayerH = "OpaqueRawPointer";
 tOGRFeatureH = "OpaqueRawPointer";
 tOGRFeatureDefnH = "OpaqueRawPointer";
 tOGRFieldDefnH = "OpaqueRawPointer";
+tOGRGeometryH = "OpaqueRawPointer";
 
 
 Begin["`Private`"];

@@ -21,6 +21,12 @@ cOGRFGetFieldAsString := cOGRFGetFieldAsString =
 feature_GDALFeature["FieldString", i_Integer] := RawMemoryImport[cOGRFGetFieldAsString[feature["RawFeature"], i-1], "String"]
 
 
+cOGRFGetGeometryRef := cOGRFGetGeometryRef =
+	ForeignFunctionLoad[$LibGDAL, "OGR_F_GetGeometryRef", {tOGRFeatureH} -> tOGRGeometryH];
+
+feature_GDALFeature["RawGeometry"] := cOGRFGetGeometryRef[feature["RawFeature"]]
+
+
 (* Constructors *)
 
 cOGRFDestroy := cOGRFDestroy =

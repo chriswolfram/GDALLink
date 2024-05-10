@@ -6,6 +6,9 @@ $GDALConstants
 (* Types *)
 tGDALDatasetH = "OpaqueRawPointer";
 tOGRLayerH = "OpaqueRawPointer";
+tOGRFeatureH = "OpaqueRawPointer";
+tOGRFeatureDefnH = "OpaqueRawPointer";
+tOGRFieldDefnH = "OpaqueRawPointer";
 
 
 Begin["`Private`"];

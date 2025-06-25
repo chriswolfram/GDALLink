@@ -36,10 +36,10 @@ cVSIFree := cVSIFree =
 feature_GDALFeature["GeometryWKT"] :=
 	Module[{ptr, str, out},
 		ptr = RawMemoryAllocate["RawPointer"::["UnsignedInteger8"]];
-		cOGRGExportToWkt[feature["RawFeature"], ptr];
+		cOGRGExportToWkt[feature["RawGeometry"], ptr];
 		str = RawMemoryRead[ptr];
 		out = RawMemoryImport[str, "String"];
-		(* cVSIFree[str]; *)
+		cVSIFree[str];
 		out
 	]
 

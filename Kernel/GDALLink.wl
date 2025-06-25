@@ -23,5 +23,8 @@ Needs["ChristopherWolfram`GDALLink`Layer`"]
 Needs["ChristopherWolfram`GDALLink`Feature`"]
 
 
+GDALInitialize[]
+
+
 End[];
 EndPackage[];

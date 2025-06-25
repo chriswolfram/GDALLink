@@ -57,6 +57,9 @@ layer_GDALLayer["FeatureMap", f_] :=
 		Internal`BagPart[bag, All]
 	]
 
+layer_GDALLayer["Features"] :=
+	layer["FeatureMap", Identity]
+
 
 (* Fields *)
 
@@ -75,39 +78,16 @@ layer_GDALLayer["FieldCount"] := cOGRFDGetFieldCount[layer["RawLayerDefinition"]
 cOGRFDGetFieldDefn := cOGRFDGetFieldDefn =
 	ForeignFunctionLoad[$LibGDAL, "OGR_FD_GetFieldDefn", {tOGRFeatureDefnH, "CInt"} -> tOGRFieldDefnH];
 
-getFieldDefinition[layerDefinition_, i_] := cOGRFDGetFieldDefn[layerDefinition, i]
+getFieldDefinition[layerDefinition_, i_] := cOGRFDGetFieldDefn[layerDefinition, i-1]
 
 layer_GDALLayer["RawFieldDefinition", i_Integer] := getFieldDefinition[layer["RawLayerDefinition"], i]
 
 
 (* Values of fields *)
 
-cOGRFIsFieldSet := cOGRFIsFieldSet =
-	ForeignFunctionLoad[$LibGDAL, "OGR_F_IsFieldSet", {tOGRFeatureDefnH, "CInt"} -> "CInt"];
-
-getFieldSet[layerDefinition_, i_] := cOGRFIsFieldSet[layerDefinition, i] === 1
-
-
-cOGRFIsFieldNull := cOGRFIsFieldNull =
-	ForeignFunctionLoad[$LibGDAL, "OGR_F_IsFieldNull", {tOGRFeatureDefnH, "CInt"} -> "CInt"];
-
-getFieldNull[layerDefinition_, i_] := cOGRFIsFieldNull[layerDefinition, i] === 1
-
-
-cOGRFIsFieldSetAndNotNull := cOGRFIsFieldSetAndNotNull =
-	ForeignFunctionLoad[$LibGDAL, "OGR_F_IsFieldSetAndNotNull", {tOGRFeatureDefnH, "CInt"} -> "CInt"];
-
-getFieldSetAndNotNull[layerDefinition_, i_] := cOGRFIsFieldSetAndNotNull[layerDefinition, i] === 1
-
-
-cOGRFldGetType := cOGRFldGetType =
-	ForeignFunctionLoad[$LibGDAL, "OGR_Fld_GetType", {tOGRFieldDefnH} -> "CInt"];
-
-getFieldType[fieldDefinition_] := cOGRFldGetType[fieldDefinition]
-
 layer_GDALLayer["RawFieldType", i_Integer] :=
 	With[{fieldDef = getFieldDefinition[layer["RawLayerDefinition"], i]},
-		If[NullRawPointerQ[fieldDef], $Failed, getFieldType[fieldDef]]
+		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionType[fieldDef]]
 	]
 
 

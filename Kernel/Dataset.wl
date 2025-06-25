@@ -29,6 +29,12 @@ cGDALDatasetGetLayerByName := cGDALDatasetGetLayerByName =
 dataset_GDALDataset["Layer", i_Integer] := GDALLayerCreate[dataset, cGDALDatasetGetLayer[dataset["RawDataset"], i-1]]
 dataset_GDALDataset["Layer", name_?StringQ] := GDALLayerCreate[dataset, cGDALDatasetGetLayerByName[dataset["RawDataset"], name]]
 
+dataset_GDALDataset["LayerList"] :=
+	dataset["Layer", #] &/@ Range[dataset["LayerCount"]]
+
+dataset_GDALDataset["LayerAssociation"] :=
+	<|#["Name"] -> # &/@ dataset["LayerList"]|>
+
 (* Constructors *)
 
 cGDALOpenEx := cGDALOpenEx =

@@ -27,6 +27,23 @@ cOGRFGetGeometryRef := cOGRFGetGeometryRef =
 feature_GDALFeature["RawGeometry"] := cOGRFGetGeometryRef[feature["RawFeature"]]
 
 
+cOGRGExportToWkt := cOGRGExportToWkt =
+	ForeignFunctionLoad[$LibGDAL, "OGR_G_ExportToWkt", {tOGRFeatureH, "RawPointer"::["RawPointer"::["UnsignedInteger8"]]} -> "CInt"];
+
+cVSIFree := cVSIFree =
+	ForeignFunctionLoad[$LibGDAL, "VSIFree", {"OpaqueRawPointer"} -> "Void"];
+
+feature_GDALFeature["GeometryWKT"] :=
+	Module[{ptr, str, out},
+		ptr = RawMemoryAllocate["RawPointer"::["UnsignedInteger8"]];
+		cOGRGExportToWkt[feature["RawFeature"], ptr];
+		str = RawMemoryRead[ptr];
+		out = RawMemoryImport[str, "String"];
+		(* cVSIFree[str]; *)
+		out
+	]
+
+
 (* Constructors *)
 
 cOGRFDestroy := cOGRFDestroy =

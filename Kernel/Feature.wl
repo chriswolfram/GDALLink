@@ -4,6 +4,9 @@ GDALFeatureCreate
 GetFieldDefinitionType
 GetFieldDefinitionName
 
+$FieldTypeFunctions
+$DefaultFieldType
+
 Begin["`Private`"];
 
 Needs["ChristopherWolfram`GDALLink`"]
@@ -36,7 +39,10 @@ cOGRFldGetType := cOGRFldGetType =
 
 GetFieldDefinitionType[fieldDefinition_] := cOGRFldGetType[fieldDefinition]
 
-feature_GDALFeature["RawFieldType", i_Integer] := GetFieldDefinitionType@feature["RawFieldDefinition", i]
+feature_GDALFeature["RawFieldType", i_Integer] :=
+	With[{fieldDef = feature["RawFieldDefinition", i]},
+		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionType[fieldDef]]
+	]
 
 
 cOGRFldGetNameRef := cOGRFldGetNameRef =
@@ -99,14 +105,28 @@ OGRFieldType {
   OFTInteger64 = 12 , OFTInteger64List = 13 , OFTMaxType = 13
 }
 *)
+$FieldTypeFunctions := $FieldTypeFunctions = <|
+	0 -> cOGRFGetFieldAsInteger,
+	3 -> cOGRFGetFieldAsDouble,
+	4 -> (RawMemoryImport[cOGRFGetFieldAsString[#1,#2], "String"]&),
+	12 -> cOGRFGetFieldAsInteger64
+|>;
+$DefaultFieldType = 12;
+
 feature_GDALFeature["Field", i_Integer] :=
-	Switch[feature["RawFieldType", i],
-		0, feature["FieldInteger", i],
-		3, feature["FieldDouble", i],
-		4, feature["FieldString", i],
-		12, feature["FieldInteger64", i],
-		_, feature["FieldString", i]
-	]
+	Lookup[
+		$FieldTypeFunctions,
+		feature["RawFieldType", i],
+		$FieldTypeFunctions[$DefaultFieldType]
+	][feature["RawFeature"],i-1]
+
+(* Switch[feature["RawFieldType", i],
+	0,  feature["FieldInteger", i],
+	3,  feature["FieldDouble", i],
+	4,  feature["FieldString", i],
+	12, feature["FieldInteger64", i],
+	_,  feature["FieldString", i]
+] *)
 
 feature_GDALFeature["FieldList"] :=
 	feature["Field", #]&/@Range[feature["FieldCount"]]

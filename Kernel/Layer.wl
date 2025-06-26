@@ -57,8 +57,7 @@ layer_GDALLayer["FeatureMap", f_] :=
 		Internal`BagPart[bag, All]
 	]
 
-layer_GDALLayer["Features"] :=
-	layer["FeatureMap", Identity]
+layer_GDALLayer["Features"] := layer["FeatureMap", Identity]
 
 
 (* Fields *)
@@ -89,6 +88,35 @@ layer_GDALLayer["RawFieldType", i_Integer] :=
 	With[{fieldDef = getFieldDefinition[layer["RawLayerDefinition"], i]},
 		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionType[fieldDef]]
 	]
+
+layer_GDALLayer["FieldName", i_Integer] :=
+	With[{fieldDef = getFieldDefinition[layer["RawLayerDefinition"], i]},
+		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionName[fieldDef]]
+	]
+
+layer_GDALLayer["FieldName"] := layer["FieldName", #]&/@Range[layer["FieldCount"]] 
+
+
+layer_GDALLayer["FieldList"] :=
+	Module[{cols, colTypes, colFuns, rawLayer, rawFeature, bag},
+		cols = Range[layer["FieldCount"]];
+		rawLayer = layer["RawLayer"];
+
+		colTypes = layer["RawFieldType", #]&/@cols;
+		colFuns = Lookup[$FieldTypeFunctions, colTypes, $FieldTypeFunctions[$DefaultFieldType]];
+
+		layer["ResetReading"];
+		bag = Internal`Bag[];
+		While[rawFeature = cOGRLGetNextFeature[rawLayer]; !NullRawPointerQ[rawFeature],
+			Internal`StuffBag[bag,
+				MapThread[#1[rawFeature,#2]&, {colFuns, cols-1}]
+			]
+		];
+		Internal`BagPart[bag, All]
+	]
+
+layer_GDALLayer["FieldAssociation"] := AssociationThread[layer["FieldName"], Transpose@layer["FieldList"]]
+layer_GDALLayer["FieldTabular"] := ToTabular[layer["FieldAssociation"], "Columns"]
 
 
 (* Constructors *)

@@ -4,6 +4,8 @@ GDALLayerCreate
 
 Begin["`Private`"];
 
+Needs["GEOSLink`"]
+
 Needs["ChristopherWolfram`GDALLink`"]
 Needs["ChristopherWolfram`GDALLink`Utilities`"]
 Needs["ChristopherWolfram`GDALLink`Constants`"]
@@ -89,12 +91,12 @@ layer_GDALLayer["RawFieldType", i_Integer] :=
 		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionType[fieldDef]]
 	]
 
-layer_GDALLayer["FieldName", i_Integer] :=
+layer_GDALLayer["FieldNames", i_Integer] :=
 	With[{fieldDef = getFieldDefinition[layer["RawLayerDefinition"], i]},
 		If[NullRawPointerQ[fieldDef], $Failed, GetFieldDefinitionName[fieldDef]]
 	]
 
-layer_GDALLayer["FieldName"] := layer["FieldName", #]&/@Range[layer["FieldCount"]] 
+layer_GDALLayer["FieldNames"] := layer["FieldNames", #]&/@Range[layer["FieldCount"]] 
 
 
 layer_GDALLayer["FieldList"] :=
@@ -110,13 +112,32 @@ layer_GDALLayer["FieldList"] :=
 		While[rawFeature = cOGRLGetNextFeature[rawLayer]; !NullRawPointerQ[rawFeature],
 			Internal`StuffBag[bag,
 				MapThread[#1[rawFeature,#2]&, {colFuns, cols-1}]
-			]
+			];
+			RawFeatureDestroy[rawFeature]
 		];
 		Internal`BagPart[bag, All]
 	]
 
-layer_GDALLayer["FieldAssociation"] := AssociationThread[layer["FieldName"], Transpose@layer["FieldList"]]
+layer_GDALLayer["FieldAssociation"] := AssociationThread[layer["FieldNames"], Transpose@layer["FieldList"]]
 layer_GDALLayer["FieldTabular"] := ToTabular[layer["FieldAssociation"], "Columns"]
+
+
+(* Geometry *)
+
+layer_GDALLayer["GeometryList"] :=
+	Module[{rawLayer, rawFeature, bag},
+		rawLayer = layer["RawLayer"];
+
+		layer["ResetReading"];
+		bag = Internal`Bag[];
+		While[rawFeature = cOGRLGetNextFeature[rawLayer]; !NullRawPointerQ[rawFeature],
+			Internal`StuffBag[bag,
+				FromGEOS@FromWKB@RawGeometryWKB[RawFeatureGeometry[rawFeature]]
+			];
+			RawFeatureDestroy[rawFeature]
+		];
+		Internal`BagPart[bag, All]
+	]
 
 
 (* Constructors *)

@@ -4,6 +4,11 @@ GDALFeatureCreate
 GetFieldDefinitionType
 GetFieldDefinitionName
 
+RawFeatureDestroy
+RawFeatureGeometry
+RawGeometryWKT
+RawGeometryWKB
+
 $FieldTypeFunctions
 $DefaultFieldType
 
@@ -50,7 +55,8 @@ cOGRFldGetNameRef := cOGRFldGetNameRef =
 
 GetFieldDefinitionName[fieldDefinition_] := RawMemoryImport[cOGRFldGetNameRef[fieldDefinition], "String"]
 
-feature_GDALFeature["FieldName", i_Integer] := GetFieldDefinitionName@feature["RawFieldDefinition", i]
+feature_GDALFeature["FieldNames", i_Integer] := GetFieldDefinitionName@feature["RawFieldDefinition", i]
+feature_GDALFeature["FieldNames"] := feature["FieldNames", #]&/@Range[feature["FieldCount"]]
 
 
 (* Missing data *)
@@ -140,7 +146,9 @@ feature_GDALFeature["FieldAssociation"] :=
 cOGRFGetGeometryRef := cOGRFGetGeometryRef =
 	ForeignFunctionLoad[$LibGDAL, "OGR_F_GetGeometryRef", {tOGRFeatureH} -> tOGRGeometryH];
 
-feature_GDALFeature["RawGeometry"] := cOGRFGetGeometryRef[feature["RawFeature"]]
+RawFeatureGeometry[rawFeature_] := cOGRFGetGeometryRef[rawFeature]
+
+feature_GDALFeature["RawGeometry"] := RawFeatureGeometry[feature["RawFeature"]]
 
 
 cOGRGExportToWkt := cOGRGExportToWkt =
@@ -149,15 +157,17 @@ cOGRGExportToWkt := cOGRGExportToWkt =
 cVSIFree := cVSIFree =
 	ForeignFunctionLoad[$LibGDAL, "VSIFree", {"OpaqueRawPointer"} -> "Void"];
 
-feature_GDALFeature["GeometryWKT"] :=
-	Module[{ptr, str, out},
-		ptr = RawMemoryAllocate["RawPointer"::["UnsignedInteger8"]];
-		cOGRGExportToWkt[feature["RawGeometry"], ptr];
+RawGeometryWKT[rawGeometry_, ptr_] :=
+	Module[{str, out},
+		cOGRGExportToWkt[rawGeometry, ptr];
 		str = RawMemoryRead[ptr];
 		out = RawMemoryImport[str, "String"];
 		cVSIFree[str];
 		out
 	]
+RawGeometryWKT[rawGeometry_] := RawGeometryWKT[rawGeometry, RawMemoryAllocate["UnsignedInteger8"]]
+
+feature_GDALFeature["GeometryWKT"] := RawGeometryWKT[feature["RawGeometry"]]
 
 
 cOGRGWkbSize := cOGRGWkbSize =
@@ -166,14 +176,15 @@ cOGRGWkbSize := cOGRGWkbSize =
 cOGRGExportToWkb := cOGRGExportToWkb =
 	ForeignFunctionLoad[$LibGDAL, "OGR_G_ExportToWkb", {tOGRGeometryH, "CInt", "RawPointer"::["UnsignedInteger8"]} -> "CInt"];
 
-feature_GDALFeature["GeometryWKB", byteOrder_:0] :=
-	Module[{ptr, geom, size},
-		geom = feature["RawGeometry"];
-		size = cOGRGWkbSize[geom];
+RawGeometryWKB[rawGeometry_, byteOrder_:0] :=
+	Module[{size, ptr},
+		size = cOGRGWkbSize[rawGeometry];
 		ptr = RawMemoryAllocate["UnsignedInteger8", size];
-		cOGRGExportToWkb[feature["RawGeometry"], byteOrder, ptr];
+		cOGRGExportToWkb[rawGeometry, byteOrder, ptr];
 		RawMemoryImport[ptr, {"ByteArray", size}]
 	]
+
+feature_GDALFeature["GeometryWKB", byteOrder_:0] := RawGeometryWKB[feature["RawGeometry"], byteOrder]
 
 
 (* Constructors *)
@@ -181,13 +192,15 @@ feature_GDALFeature["GeometryWKB", byteOrder_:0] :=
 cOGRFDestroy := cOGRFDestroy =
 	ForeignFunctionLoad[$LibGDAL, "OGR_F_Destroy", {tOGRFeatureH} -> "Void"];
 
+RawFeatureDestroy[rawFeature_] := cOGRFDestroy[rawFeature]
+
 
 DeclareFunction[GDALFeatureCreate, iGDALFeatureCreate, 2];
 
 iGDALFeatureCreate[layer_GDALLayer, ptr_OpaqueRawPointer, opts_] :=
 	If[NullRawPointerQ[ptr],
 		$Failed,
-		GDALFeature[layer, CreateManagedObject[ptr, cOGRFDestroy]]
+		GDALFeature[layer, CreateManagedObject[ptr, RawFeatureDestroy]]
 	]
 
 
